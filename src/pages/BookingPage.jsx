@@ -8,11 +8,10 @@ export default function BookingPage() {
 
     useEffect(() => {
         if (id) {
-            axios.get('/bookings', { withCredentials: true }).then((response) => {
-                const found = response.data.find(({ _id }) => _id === id);
-                if (found) {
-                    setBooking(found);
-                }
+            axios.get(`/bookings/${id}`, { withCredentials: true }).then((response) => {
+                setBooking(response.data);
+            }).catch((error) => {
+                console.error("Error fetching booking:", error);
             });
         }
     }, [id]);

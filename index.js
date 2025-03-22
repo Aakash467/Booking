@@ -34,11 +34,23 @@ app.get('/test',(req,res)=>{
 });
 
 function getUserData(req){
-    return new Promise((resolve,reject)=>{
-        jwt.verify(req.cookies.token, jwtSecret, {}, async (err, userData) =>{
-            if(err) throw err;
+    console.log("Cookies:", req.cookies || {});  // Debugging log
+
+    return new Promise((resolve) => {
+        const token = req.cookies?.token;
+
+        if (!token) {
+            console.warn("No token found in request cookies.");
+            return resolve(null);  // Instead of rejecting, return null
+        }
+
+        jwt.verify(token, jwtSecret, {}, async (err, userData) => {
+            if (err) {
+                console.warn("JWT Verification Failed:", err.message);
+                return resolve(null);  // Return null if verification fails
+            }
             resolve(userData);
-        } );
+        });
     });
 }
 
@@ -208,10 +220,13 @@ app.put('/places', async (req,res)=>{
 
 app.post('/booking',async (req, res) => {
     const userData = await getUserData(req);
-    
+    if (!userData) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { place, checkIn, checkOut, name, phone, nofGuest, price } = req.body;
 
-    Booking.create({ place,user:userData.id, checkIn, checkOut, name, phone, nofGuest, price })
+    Booking.create({ place, user: userData.id, checkIn, checkOut, name, phone, nofGuest, price })
         .then((doc) => {
             res.json(doc);
         })
@@ -221,11 +236,12 @@ app.post('/booking',async (req, res) => {
         });
 });
 
-
-
 app.get('/bookings', async (req,res)=>{
     const userData = await getUserData(req);
-    res.json(await Booking.find({user:userData.id}).populate('place'))
+    if (!userData) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    res.json(await Booking.find({user:userData.id}).populate('place'));
 });
 
 app.listen(4000);
